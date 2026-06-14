@@ -351,10 +351,34 @@ body {
 .login-btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 32px var(--blue-glow); }
 .login-btn:disabled { opacity: .65; cursor: not-allowed; transform: none !important; }
 
-.login-footer { text-align: center; margin-top: 18px; }
-.login-footer-text { font-size: 11px; color: var(--t3); line-height: 1.7; }
-.login-footer-link { color: var(--blue); font-weight: 600; cursor: pointer; background: none; border: none; font-family: var(--ff); font-size: 11px; text-decoration: underline; text-underline-offset: 2px; }
 .login-badges { display: flex; justify-content: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+
+/* simple auth-switch line used on both login and register screens */
+.auth-switch { text-align: center; font-size: 12px; color: var(--t3); margin-top: 16px; }
+.auth-switch-link {
+  background: none; border: none; color: var(--blue); font-family: var(--ff);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px; transition: opacity .2s;
+}
+.auth-switch-link:hover { opacity: .72; }
+
+/* register screen — same container as login, just centred */
+#screenRegister { justify-content: center; padding: 24px 16px 48px; }
+
+/* register submit button — green tint to visually distinguish from sign-in */
+.reg-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #1a4abf, #3b7ef8);
+  border: none; border-radius: var(--r-sm); padding: 15px; color: #fff;
+  font-family: var(--ff); font-size: 15px; font-weight: 700; cursor: pointer;
+  letter-spacing: .2px; box-shadow: 0 4px 22px rgba(16,201,138,.28);
+  transition: transform .25s var(--ease), box-shadow .25s, opacity .2s;
+  min-height: 52px; position: relative; overflow: hidden;
+}
+.reg-btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(16,201,138,.38); }
+.reg-btn:disabled { opacity: .65; cursor: not-allowed; transform: none !important; }
+
+
 .login-badge { background: var(--surface-2); border: 1px solid var(--border-md); border-radius: 100px; padding: 4px 10px; font-size: 9.5px; font-weight: 600; color: var(--t3); letter-spacing: .5px; display: flex; align-items: center; gap: 5px; }
 .badge-dot { width: 4px; height: 4px; border-radius: 50%; }
 .badge-dot.blue{background:var(--blue);} .badge-dot.amber{background:var(--amber);} .badge-dot.green{background:var(--green);}
@@ -674,16 +698,104 @@ body {
 
       <!-- Server error / info message -->
       <div class="server-msg" id="loginMsg" role="alert"></div>
+
+      <!-- Register link — right below the button, inside the card -->
+      <p class="auth-switch">Don't have an account?
+        <button class="auth-switch-link" onclick="showScreen('screenRegister')">Register here →</button>
+      </p>
     </div>
 
-    <div class="login-footer">
-      <p class="login-footer-text">Don't have an account? <button class="login-footer-link">Register at a Muvo kiosk</button></p>
-    </div>
     <div class="login-badges">
       <div class="login-badge"><div class="badge-dot blue"></div>Muvo Transit</div>
       <div class="login-badge"><div class="badge-dot amber"></div>Voshr Wallet</div>
       <div class="login-badge"><div class="badge-dot green"></div>STS Verified</div>
     </div>
+  </div>
+  </section>
+
+
+  <!-- ▓▓▓ REGISTER ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ -->
+  <section class="screen" id="screenRegister" aria-label="Create Account">
+  <div class="login-wrap">
+
+    <div class="login-logo-row">
+      <div class="login-logo-mark">
+        Mz<div class="logo-ring"></div>
+      </div>
+      <h1 class="login-app-name">Create Account</h1>
+      <p class="login-tagline">Register your Muvo card on Mobizarl</p>
+    </div>
+
+    <div class="login-card">
+      <h2 class="lc-title">Card Registration</h2>
+      <p class="lc-sub">Enter the number on your physical Muvo card, your details, and choose a password. An OTP will be sent to your cellphone to verify your account.</p>
+
+      <!-- Card Number -->
+      <div class="field">
+        <label class="f-label" for="rCard"><span class="f-label-icon">💳</span>Muvo Card Number</label>
+        <div class="f-wrap">
+          <input class="f-input mono" id="rCard" type="tel" inputmode="numeric" maxlength="12" placeholder="123456789012" autocomplete="off" />
+        </div>
+        <div class="f-err" id="rErrCard"><span>⚠</span>Enter the 12-digit number on your Muvo card</div>
+      </div>
+
+      <!-- Full Name -->
+      <div class="field">
+        <label class="f-label" for="rName"><span class="f-label-icon">👤</span>Full Name</label>
+        <div class="f-wrap">
+          <input class="f-input" id="rName" type="text" placeholder="e.g. Sipho Ndlovu" autocomplete="name" />
+        </div>
+        <div class="f-err" id="rErrName"><span>⚠</span>Please enter your full name</div>
+      </div>
+
+      <!-- Cellphone -->
+      <div class="field">
+        <label class="f-label" for="rCell"><span class="f-label-icon">📱</span>Cellphone Number</label>
+        <div class="f-wrap">
+          <input class="f-input" id="rCell" type="tel" inputmode="tel" placeholder="+27 82 000 0000" autocomplete="tel" />
+        </div>
+        <div class="f-err" id="rErrCell"><span>⚠</span>Enter a valid SA mobile number</div>
+      </div>
+
+      <!-- Password -->
+      <div class="field">
+        <label class="f-label" for="rPass"><span class="f-label-icon">🔒</span>Password</label>
+        <div class="f-wrap">
+          <input class="f-input has-trail" id="rPass" type="password" placeholder="Min. 6 characters" autocomplete="new-password" />
+          <button class="f-trail" id="toggleRPw" type="button" onclick="toggleRegPw()">Show</button>
+        </div>
+        <div class="f-err" id="rErrPass"><span>⚠</span>Password must be at least 6 characters</div>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="field">
+        <label class="f-label" for="rConfirm"><span class="f-label-icon">🔒</span>Confirm Password</label>
+        <div class="f-wrap">
+          <input class="f-input has-trail" id="rConfirm" type="password" placeholder="Re-enter password" autocomplete="new-password" />
+          <button class="f-trail" id="toggleRConfirm" type="button" onclick="toggleRegConfirm()">Show</button>
+        </div>
+        <div class="f-err" id="rErrConfirm"><span>⚠</span>Passwords do not match</div>
+      </div>
+
+      <div class="form-divider"></div>
+
+      <button class="reg-btn" id="regBtn" onclick="handleRegister()">
+        Register &amp; Send OTP →
+      </button>
+
+      <div class="server-msg" id="regMsg" role="alert"></div>
+
+      <p class="auth-switch">Already have an account?
+        <button class="auth-switch-link" onclick="showScreen('screenLogin')">Sign in →</button>
+      </p>
+    </div>
+
+    <div class="login-badges">
+      <div class="login-badge"><div class="badge-dot blue"></div>Muvo Transit</div>
+      <div class="login-badge"><div class="badge-dot amber"></div>Voshr Wallet</div>
+      <div class="login-badge"><div class="badge-dot green"></div>STS Verified</div>
+    </div>
+
   </div>
   </section>
 
@@ -973,8 +1085,83 @@ function togglePw() {
   const pw  = document.getElementById('fPass');
   const btn = document.getElementById('togglePw');
   const show = pw.type === 'password';
-  pw.type      = show ? 'text' : 'password';
+  pw.type         = show ? 'text' : 'password';
   btn.textContent = show ? 'Hide' : 'Show';
+}
+
+function toggleRegPw() {
+  const pw  = document.getElementById('rPass');
+  const btn = document.getElementById('toggleRPw');
+  const show = pw.type === 'password';
+  pw.type         = show ? 'text' : 'password';
+  btn.textContent = show ? 'Hide' : 'Show';
+}
+
+function toggleRegConfirm() {
+  const pw  = document.getElementById('rConfirm');
+  const btn = document.getElementById('toggleRConfirm');
+  const show = pw.type === 'password';
+  pw.type         = show ? 'text' : 'password';
+  btn.textContent = show ? 'Hide' : 'Show';
+}
+
+/* ────────────────────────────────────────────
+   REGISTER
+──────────────────────────────────────────── */
+async function handleRegister() {
+  const card    = document.getElementById('rCard').value.replace(/\D/g, '');
+  const name    = document.getElementById('rName').value.trim();
+  const cell    = document.getElementById('rCell').value.trim();
+  const pass    = document.getElementById('rPass').value;
+  const confirm = document.getElementById('rConfirm').value;
+
+  let ok = true;
+  if (card.length !== 12)                              { setFieldErr('rCard','rErrCard',true);    ok = false; } else setFieldErr('rCard','rErrCard',false);
+  if (name.length < 2)                                 { setFieldErr('rName','rErrName',true);    ok = false; } else setFieldErr('rName','rErrName',false);
+  if (cell.replace(/[\s\-()]/g,'').length < 10)     { setFieldErr('rCell','rErrCell',true);    ok = false; } else setFieldErr('rCell','rErrCell',false);
+  if (pass.length < 6)                                 { setFieldErr('rPass','rErrPass',true);    ok = false; } else setFieldErr('rPass','rErrPass',false);
+  if (pass !== confirm)                                { setFieldErr('rConfirm','rErrConfirm',true); ok = false; } else setFieldErr('rConfirm','rErrConfirm',false);
+  if (!ok) return;
+
+  const btn = document.getElementById('regBtn');
+  setLoading(btn, true);
+  clearMsg('regMsg');
+
+  try {
+    const res  = await fetch('/api/register', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ cardNumber: card, fullName: name, cellNumber: cell, password: pass, confirmPassword: confirm }),
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      const fieldMap = { card:'rCard', name:'rName', cell:'rCell', pass:'rPass', confirm:'rConfirm' };
+      const errMap   = { card:'rErrCard', name:'rErrName', cell:'rErrCell', pass:'rErrPass', confirm:'rErrConfirm' };
+      if (data.field && fieldMap[data.field]) {
+        setFieldErr(fieldMap[data.field], errMap[data.field], true);
+      } else {
+        showMsg('regMsg', data.message || 'Registration failed. Please try again.');
+      }
+      return;
+    }
+
+    // Store for OTP verification
+    S.flow       = 'register';
+    S.cellNumber = cell;
+    S.lastCard   = card;
+    document.getElementById('otpPhone').textContent = data.maskedPhone;
+
+    clearOtpBoxes();
+    showScreen('screenOtp');
+    startResendCountdown(30);
+    setTimeout(() => document.querySelector('.otp-box')?.focus(), 500);
+
+  } catch (err) {
+    showMsg('regMsg', 'Connection error — is the server running?');
+  } finally {
+    setLoading(btn, false);
+  }
 }
 
 /* ────────────────────────────────────────────
@@ -1031,7 +1218,9 @@ async function handleLogin() {
 function goBack() {
   clearInterval(S.resendTimer);
   clearMsg('otpMsg');
-  showScreen('screenLogin');
+  const dest = S.flow === 'register' ? 'screenRegister' : 'screenLogin';
+  S.flow = 'login';
+  showScreen(dest);
 }
 
 /* ────────────────────────────────────────────
@@ -1111,7 +1300,8 @@ async function handleOtpVerify() {
   clearMsg('otpMsg');
 
   try {
-    const res  = await fetch('/api/verify-otp', {
+    const endpoint = S.flow === 'register' ? '/api/verify-registration' : '/api/verify-otp';
+    const res  = await fetch(endpoint, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ cellNumber: S.cellNumber, otp }),
@@ -1322,6 +1512,14 @@ function handleTransfer() {
 ──────────────────────────────────────────── */
 document.getElementById('fCard').addEventListener('input', e => {
   e.target.value = e.target.value.replace(/\D/g,'').slice(0,12);
+});
+document.getElementById('rCard').addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g,'').slice(0,12);
+});
+['rCard','rName','rCell','rPass','rConfirm'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleRegister();
+  });
 });
 document.getElementById('txInput').addEventListener('input', e => {
   e.target.value = e.target.value.replace(/\D/g,'').slice(0,12);
