@@ -1,4 +1,4 @@
-Copyright (c) 2026 Your Name / Your Company. All rights reserved.
+Copyright (c) 2026 Siyabonga Ngcobo / Korale Systems. All rights reserved.
 
 This software and associated documentation files are proprietary and confidential. 
 Unauthorized copying, modification, distribution, or sublicensing of this file, 
