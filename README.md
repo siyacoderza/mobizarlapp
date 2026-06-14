@@ -1,54 +1,57 @@
-# mobizarlapp
-commuters manage their tickets/view their pay cards online/verify which bus/taxi boarded and which driver was driving which bus/view trips balance
-# Commuter Hub MVP 🚌
+# balanced-match
 
-A commercial Minimum Viable Product (MVP) application designed for commuters to seamlessly track bus trips, check transit card balances, and access digital ticketing. 
+Match balanced string pairs, like `{` and `}` or `<b>` and
+`</b>`. Supports regular expressions as well!
 
-## 🚀 Key Features
+## Example
 
-* **Real-Time Bus Trips**: View active transit schedules, routes, and trip details online.
-* **Digital Ticketing**: Instant access to mobile commuter tickets and scannable passes.
-* **Smart Card Status**: Check balance, transaction history, and card statuses instantly.
-* **OTP Authentication**: Secure login verification powered by **Africa's Talking SMS API**.
+Get the first matching pair of braces:
 
-## 🛠️ Tech Stack
+```js
+import { balanced } from 'balanced-match'
 
-* **Backend**: Node.js, Express.js
-* **SMS Gateway**: Africa'sTalking Node.js SDK (v0.8.0)
-* **Environment Configuration**: Dotenv
+console.log(balanced('{', '}', 'pre{in{nested}}post'))
+console.log(balanced('{', '}', 'pre{first}between{second}post'))
+console.log(
+  balanced(/\s+\{\s+/, /\s+\}\s+/, 'pre  {   in{nest}   }  post'),
+)
+```
 
-## 📦 Local Installation & Setup
+The matches are:
 
-Follow these steps to run the development environment locally:
-
-### 1. Clone the Repository
 ```bash
-git clone https://github.com
-cd YOUR_REPO_NAME
+$ node example.js
+{ start: 3, end: 14, pre: 'pre', body: 'in{nested}', post: 'post' }
+{ start: 3,
+  end: 9,
+  pre: 'pre',
+  body: 'first',
+  post: 'between{second}post' }
+{ start: 3, end: 17, pre: 'pre', body: 'in{nest}', post: 'post' }
 ```
 
-### 2. Install Project Dependencies
-```bash
-npm install
-```
+## API
 
-### 3. Configure Your Credentials
-Create a `.env` file in the root directory:
-```bash
-nano .env
-```
-Populate the file with your active API parameters:
-```ini
-AT_USERNAME="sandbox"
-AT_API_KEY="your_africas_talking_api_key"
-```
+### const m = balanced(a, b, str)
 
-### 4. Launch the Local Application
-```bash
-node sendOtp.js
-```
+For the first non-nested matching pair of `a` and `b` in `str`, return an
+object with those keys:
 
-## 🔒 License
+- **start** the index of the first match of `a`
+- **end** the index of the matching `b`
+- **pre** the preamble, `a` and `b` not included
+- **body** the match, `a` and `b` not included
+- **post** the postscript, `a` and `b` not included
 
-**Proprietary & Confidential**. All Rights Reserved.  
-Unauthorized copying, modification, or distribution of this code repository is strictly prohibited. See the `LICENSE` file for explicit terms.
+If there's no match, `undefined` will be returned.
+
+If the `str` contains more `a` than `b` / there are unmatched pairs, the first match that was closed will be used. For example, `{{a}` will match `['{', 'a', '']` and `{a}}` will match `['', 'a', '}']`.
+
+### const r = balanced.range(a, b, str)
+
+For the first non-nested matching pair of `a` and `b` in `str`, return an
+array with indexes: `[ <a index>, <b index> ]`.
+
+If there's no match, `undefined` will be returned.
+
+If the `str` contains more `a` than `b` / there are unmatched pairs, the first match that was closed will be used. For example, `{{a}` will match `[ 1, 3 ]` and `{a}}` will match `[0, 2]`.

@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Mobizarl — Your Free Commuter Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+
+<style>
+/* ═══════════════════════════════════════════════════════
+   RESET & DESIGN TOKENS
+═══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:         #07090f;
+  --surface:    #0f1520;
+  --surface-2:  #141e2e;
+  --surface-3:  #1c2840;
+  --border:     rgba(255,255,255,.055);
+  --border-md:  rgba(255,255,255,.10);
+  --blue:       #3b7ef8;
+  --blue-dim:   rgba(59,126,248,.16);
+  --blue-glow:  rgba(59,126,248,.30);
+  --amber:      #f5a832;
+  --amber-dim:  rgba(245,168,50,.14);
+  --amber-glow: rgba(245,168,50,.28);
+  --green:      #10c98a;
+  --green-dim:  rgba(16,201,138,.14);
+  --red:        #f05050;
+  --red-dim:    rgba(240,80,80,.14);
+  --t1:         #eef2ff;
+  --t2:         #7a8fb0;
+  --t3:         #3d526a;
+  --t4:         #1e2d40;
+  --ff:         'Sora', sans-serif;
+  --fm:         'DM Mono', monospace;
+  --r-sm:       8px;
+  --r-md:       14px;
+  --r-lg:       20px;
+  --r-xl:       26px;
+  --ease:       cubic-bezier(.4,0,.2,1);
+  --ease-spring:cubic-bezier(.34,1.46,.64,1);
+  --ease-out:   cubic-bezier(0,.55,.45,1);
+}
+html, body { height: 100%; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: var(--ff);
+  background: var(--bg);
+  color: var(--t1);
+  -webkit-font-smoothing: antialiased;
+  height: 100dvh; overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════
+   LOADING SPINNER
+═══════════════════════════════════════════════════════ */
+.btn-spinner {
+  display: inline-block;
+  width: 17px; height: 17px;
+  border: 2.5px solid rgba(255,255,255,.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .65s linear infinite;
+  vertical-align: middle;
+}
+.btn-spinner.dark {
+  border-color: rgba(6,8,15,.18);
+  border-top-color: #06080f;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════
+   SERVER MESSAGE BANNER
+═══════════════════════════════════════════════════════ */
+.server-msg {
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height .32s var(--ease), opacity .28s, padding .3s, margin .3s, border .3s;
+  border: 1px solid transparent;
+}
+.server-msg.error {
+  background: var(--red-dim);
+  border-color: rgba(240,80,80,.25);
+  color: #ff8585;
+  padding: 11px 14px;
+  max-height: 80px;
+  opacity: 1;
+  margin-top: 12px;
+}
+.server-msg.info {
+  background: var(--blue-dim);
+  border-color: rgba(59,126,248,.25);
+  color: #8ab4ff;
+  padding: 11px 14px;
+  max-height: 80px;
+  opacity: 1;
+  margin-top: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   FLOATING PIE BUTTON
+═══════════════════════════════════════════════════════ */
+.float-pie {
+  position: fixed;
+  top: 20px; left: 16px;
+  z-index: 800;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: none; cursor: pointer;
+  background: conic-gradient(
+    #3b7ef8 0deg 85deg, #10c98a 85deg 168deg,
+    #f5a832 168deg 254deg, #f05050 254deg 360deg
+  );
+  box-shadow: 0 0 18px rgba(59,126,248,.5), 0 4px 12px rgba(0,0,0,.5);
+  outline: none;
+  transition: transform .32s var(--ease-spring), box-shadow .3s, opacity .3s;
+  display: none;
+}
+.float-pie::after {
+  content: ''; position: absolute; inset: 5px;
+  border-radius: 50%; background: #06090f; transition: background .25s;
+}
+.float-pie.visible { display: block; }
+.float-pie:hover { transform: scale(1.1) rotate(42deg); box-shadow: 0 0 28px rgba(59,126,248,.65), 0 6px 18px rgba(0,0,0,.55); }
+.float-pie:active { transform: scale(.9); }
+
+/* ═══════════════════════════════════════════════════════
+   SIDEBAR OVERLAY & PANEL
+═══════════════════════════════════════════════════════ */
+.sb-overlay {
+  position: fixed; inset: 0;
+  background: rgba(4,6,12,.80); backdrop-filter: blur(3px);
+  z-index: 900; opacity: 0; pointer-events: none;
+  transition: opacity .35s var(--ease);
+}
+.sb-overlay.open { opacity: 1; pointer-events: auto; }
+
+.sb-panel {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: 300px; max-width: 88vw;
+  background: #080c16;
+  border-right: 1px solid var(--border-md);
+  z-index: 1000;
+  display: flex; flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform .38s var(--ease);
+  overflow: hidden;
+  box-shadow: 12px 0 40px rgba(0,0,0,.5), 1px 0 0 rgba(59,126,248,.08);
+}
+.sb-panel.open { transform: translateX(0); }
+
+/* ── Topbar ── */
+.sb-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 18px 18px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.sb-brand { display: flex; align-items: center; gap: 10px; }
+.sb-brand-logo {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: linear-gradient(145deg, #1a4abf, #3b7ef8);
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 800; color: #fff;
+  box-shadow: 0 3px 10px rgba(59,130,246,.4);
+}
+.sb-brand-name { font-size: 14px; font-weight: 700; letter-spacing: -.4px; }
+.sb-x {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border-md);
+  color: var(--t2); font-size: 14px; cursor: pointer;
+  display: grid; place-items: center;
+  transition: background .2s, color .2s, border-color .2s, transform .22s var(--ease);
+  font-family: var(--ff);
+}
+.sb-x:hover { background: var(--red-dim); border-color: var(--red); color: var(--red); transform: rotate(90deg); }
+
+/* ── Profile Card ── */
+.sb-profile {
+  margin: 18px 16px 0;
+  background: linear-gradient(150deg, #0d1e3c 0%, #0f2248 50%, #132a5a 100%);
+  border: 1px solid rgba(59,126,248,.18);
+  border-radius: var(--r-lg); padding: 20px 18px 16px;
+  position: relative; overflow: hidden; flex-shrink: 0;
+}
+.sb-profile::before {
+  content: ''; position: absolute; top: -30px; right: -30px;
+  width: 110px; height: 110px; border-radius: 50%;
+  background: rgba(59,126,248,.1); filter: blur(22px); pointer-events: none;
+}
+.sb-avatar-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.sb-avatar {
+  width: 54px; height: 54px; border-radius: 50%;
+  background: linear-gradient(135deg, #1a4abf, #3b7ef8 50%, #5b94fc);
+  display: grid; place-items: center;
+  font-size: 18px; font-weight: 800; letter-spacing: -1px; color: #fff;
+  box-shadow: 0 4px 16px rgba(59,126,248,.45), 0 0 0 2px rgba(59,126,248,.25);
+  flex-shrink: 0; position: relative;
+}
+.sb-avatar::after {
+  content: '✓'; position: absolute; bottom: -1px; right: -1px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--green); font-size: 8px; font-weight: 900;
+  display: grid; place-items: center; border: 2px solid #080c16; color: #fff;
+}
+.sb-user-name { font-size: 15px; font-weight: 700; letter-spacing: -.3px; margin-bottom: 3px; }
+.sb-user-card { font-family: var(--fm); font-size: 11px; color: rgba(255,255,255,.42); letter-spacing: 1px; }
+.sb-verified {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(16,201,138,.12); border: 1px solid rgba(16,201,138,.25);
+  color: var(--green); font-size: 9px; font-weight: 700;
+  letter-spacing: .8px; padding: 3px 8px; border-radius: 100px; text-transform: uppercase;
+}
+.sb-verified-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
+.sb-stats { display: flex; border-top: 1px solid rgba(255,255,255,.06); padding-top: 14px; margin-top: 12px; }
+.sb-stat { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.sb-stat + .sb-stat { border-left: 1px solid rgba(255,255,255,.06); padding-left: 16px; }
+.sb-stat-val { font-size: 18px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+.sb-stat-val.blue { color: #7aaeff; }
+.sb-stat-val.amber { color: var(--amber); }
+.sb-stat-lbl { font-size: 9px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--t3); }
+
+/* ── Nav ── */
+.sb-nav { flex: 1; padding: 10px 10px 0; overflow-y: auto; margin-top: 14px; }
+.sb-nav::-webkit-scrollbar { width: 0; }
+.sb-nav-item {
+  width: 100%; background: none; border: none; color: var(--t2); font-family: var(--ff);
+  font-size: 13.5px; font-weight: 500; padding: 11px 12px; border-radius: var(--r-sm);
+  cursor: pointer; display: flex; align-items: center; gap: 12px;
+  text-align: left; transition: background .2s, color .2s; letter-spacing: -.1px;
+}
+.sb-nav-item:hover, .sb-nav-item.active { background: var(--blue-dim); color: var(--t1); }
+.sb-nav-item.active { color: #8ab4ff; font-weight: 600; }
+.sb-nav-icon {
+  width: 32px; height: 32px; border-radius: var(--r-sm);
+  display: grid; place-items: center; font-size: 14px;
+  background: rgba(255,255,255,.04); flex-shrink: 0; transition: background .2s;
+}
+.sb-nav-item:hover .sb-nav-icon, .sb-nav-item.active .sb-nav-icon { background: rgba(59,126,248,.15); }
+.sb-divider { height: 1px; background: var(--border); margin: 8px 12px; }
+.sb-footer { padding: 12px 10px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.sb-signout {
+  width: 100%; background: none; border: 1px solid rgba(240,80,80,.2);
+  border-radius: var(--r-sm); color: #f07070; font-family: var(--ff);
+  font-size: 13px; font-weight: 600; padding: 11px 14px; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; transition: background .2s, border-color .2s, color .2s;
+}
+.sb-signout:hover { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+
+/* ═══════════════════════════════════════════════════════
+   CANVAS
+═══════════════════════════════════════════════════════ */
+.canvas {
+  width: 100%; height: 100dvh;
+  overflow-y: auto; overflow-x: hidden;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 70% 55% at 18% 0%, rgba(59,126,248,.09) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 45% at 82% 100%, rgba(245,168,50,.05) 0%, transparent 55%);
+  display: flex; flex-direction: column; align-items: center;
+}
+.canvas::-webkit-scrollbar { width: 0; }
+
+/* ═══════════════════════════════════════════════════════
+   SCREEN SYSTEM
+═══════════════════════════════════════════════════════ */
+.screen {
+  display: none; width: 100%; min-height: 100dvh;
+  flex-direction: column; align-items: center;
+}
+.screen.visible { display: flex; animation: screenIn .42s var(--ease-out) both; }
+@keyframes screenIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════════════════════
+   LOGIN SCREEN
+═══════════════════════════════════════════════════════ */
+#screenLogin { justify-content: center; padding: 24px 16px 40px; }
+.login-wrap { width: 100%; max-width: 400px; }
+.login-logo-row { display: flex; flex-direction: column; align-items: center; margin-bottom: 36px; }
+.login-logo-mark {
+  width: 68px; height: 68px; border-radius: 22px;
+  background: linear-gradient(145deg, #0e2260, #1a4abf, #3b7ef8);
+  display: grid; place-items: center;
+  font-size: 26px; font-weight: 900; color: #fff; letter-spacing: -2px;
+  box-shadow: 0 8px 32px rgba(59,130,246,.45), 0 0 0 1px rgba(255,255,255,.1);
+  margin-bottom: 16px; position: relative;
+}
+.logo-ring { position: absolute; inset: -8px; border-radius: 30px; border: 1px solid rgba(59,126,248,.22); pointer-events: none; }
+.login-app-name { font-size: 26px; font-weight: 800; letter-spacing: -1.2px; margin-bottom: 5px; }
+.login-tagline { font-size: 12px; color: var(--t2); font-weight: 400; letter-spacing: .3px; }
+.login-card {
+  background: var(--surface); border: 1px solid var(--border-md);
+  border-radius: var(--r-xl); padding: 28px 24px 24px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.4);
+}
+.lc-title { font-size: 17px; font-weight: 700; letter-spacing: -.4px; margin-bottom: 4px; }
+.lc-sub { font-size: 11.5px; color: var(--t2); margin-bottom: 22px; line-height: 1.5; }
+
+/* ── Fields ── */
+.field { margin-bottom: 14px; }
+.f-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--t2); margin-bottom: 7px;
+  display: flex; align-items: center; gap: 6px;
+}
+.f-label-icon { font-size: 11px; opacity: .7; }
+.f-wrap { position: relative; }
+.f-input {
+  width: 100%; background: var(--surface-2); border: 1px solid var(--border-md);
+  border-radius: var(--r-sm); padding: 13px 16px; color: var(--t1);
+  font-family: var(--ff); font-size: 14px; outline: none;
+  transition: border-color .25s var(--ease), box-shadow .25s var(--ease);
+  -webkit-appearance: none;
+}
+.f-input.mono { font-family: var(--fm); letter-spacing: 1.5px; font-size: 15px; }
+.f-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,126,248,.14); }
+.f-input.has-trail { padding-right: 52px; }
+.f-input.err { border-color: var(--red) !important; box-shadow: 0 0 0 3px var(--red-dim) !important; animation: shake .36s var(--ease); }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+.f-trail {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--t3); cursor: pointer;
+  font-size: 11px; font-weight: 600; font-family: var(--ff);
+  padding: 4px 6px; border-radius: 4px; transition: color .2s; line-height: 1;
+}
+.f-trail:hover { color: var(--t1); }
+.f-err { font-size: 10.5px; color: var(--red); margin-top: 5px; display: none; align-items: center; gap: 5px; }
+.f-err.show { display: flex; }
+.form-divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+/* ── Login Button ── */
+.login-btn {
+  width: 100%; background: linear-gradient(135deg, #1a4abf, #3b7ef8);
+  border: none; border-radius: var(--r-sm); padding: 15px; color: #fff;
+  font-family: var(--ff); font-size: 15px; font-weight: 700; cursor: pointer;
+  letter-spacing: .2px; box-shadow: 0 4px 22px var(--blue-glow);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+  position: relative; overflow: hidden; min-height: 52px;
+}
+.login-btn::after {
+  content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.09), transparent);
+  transition: left .5s var(--ease);
+}
+.login-btn:not(:disabled):hover::after { left: 100%; }
+.login-btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 32px var(--blue-glow); }
+.login-btn:disabled { opacity: .65; cursor: not-allowed; transform: none !important; }
+
+.login-footer { text-align: center; margin-top: 18px; }
+.login-footer-text { font-size: 11px; color: var(--t3); line-height: 1.7; }
+.login-footer-link { color: var(--blue); font-weight: 600; cursor: pointer; background: none; border: none; font-family: var(--ff); font-size: 11px; text-decoration: underline; text-underline-offset: 2px; }
+.login-badges { display: flex; justify-content: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+.login-badge { background: var(--surface-2); border: 1px solid var(--border-md); border-radius: 100px; padding: 4px 10px; font-size: 9.5px; font-weight: 600; color: var(--t3); letter-spacing: .5px; display: flex; align-items: center; gap: 5px; }
+.badge-dot { width: 4px; height: 4px; border-radius: 50%; }
+.badge-dot.blue{background:var(--blue);} .badge-dot.amber{background:var(--amber);} .badge-dot.green{background:var(--green);}
+
+/* ═══════════════════════════════════════════════════════
+   OTP SCREEN
+═══════════════════════════════════════════════════════ */
+#screenOtp { justify-content: center; padding: 24px 16px 40px; }
+.otp-wrap { width: 100%; max-width: 400px; }
+.otp-back {
+  background: none; border: none; color: var(--t2); font-family: var(--ff);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  padding: 0 0 28px; display: flex; align-items: center; gap: 8px; transition: color .2s;
+}
+.otp-back:hover { color: var(--blue); }
+.otp-back-arrow { font-size: 16px; transition: transform .2s var(--ease); }
+.otp-back:hover .otp-back-arrow { transform: translateX(-3px); }
+.otp-card {
+  background: var(--surface); border: 1px solid var(--border-md);
+  border-radius: var(--r-xl); padding: 30px 24px 26px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.4); text-align: center;
+}
+.otp-icon {
+  width: 60px; height: 60px; border-radius: 18px;
+  background: var(--blue-dim); border: 1px solid rgba(59,126,248,.25);
+  display: grid; place-items: center; font-size: 26px; margin: 0 auto 18px;
+}
+.otp-title { font-size: 20px; font-weight: 800; letter-spacing: -.6px; margin-bottom: 8px; }
+.otp-desc { font-size: 12px; color: var(--t2); line-height: 1.65; margin-bottom: 6px; }
+.otp-phone { font-family: var(--fm); font-size: 13px; font-weight: 500; color: var(--blue); letter-spacing: 1px; margin-bottom: 0; }
+
+/* OTP Boxes */
+.otp-boxes { display: flex; justify-content: center; gap: 10px; margin: 26px 0 22px; }
+.otp-box {
+  width: 46px; height: 58px; border-radius: var(--r-sm);
+  background: var(--surface-2); border: 1.5px solid var(--border-md);
+  color: var(--t1); font-family: var(--fm); font-size: 22px; font-weight: 500;
+  text-align: center; outline: none; caret-color: var(--blue);
+  transition: border-color .22s var(--ease), box-shadow .22s var(--ease), transform .2s var(--ease-spring);
+  -webkit-appearance: none; line-height: 1;
+}
+.otp-box:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,126,248,.18); transform: scale(1.05); }
+.otp-box.filled { border-color: rgba(59,126,248,.45); background: rgba(59,126,248,.08); }
+.otp-box.pop { animation: boxPop .25s var(--ease-spring); }
+@keyframes boxPop { 0%{transform:scale(1)} 50%{transform:scale(1.15)} 100%{transform:scale(1)} }
+.otp-box.all-done { border-color: rgba(16,201,138,.5); background: rgba(16,201,138,.08); }
+.otp-box.err { border-color: var(--red) !important; box-shadow: 0 0 0 3px var(--red-dim) !important; animation: shake .36s var(--ease); }
+.otp-verify-btn {
+  width: 100%; background: linear-gradient(135deg, #1a4abf, #3b7ef8);
+  border: none; border-radius: var(--r-sm); padding: 14px; color: #fff;
+  font-family: var(--ff); font-size: 14px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 4px 22px var(--blue-glow);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+  margin-bottom: 14px; letter-spacing: .2px; min-height: 50px;
+}
+.otp-verify-btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--blue-glow); }
+.otp-verify-btn:disabled { opacity: .65; cursor: not-allowed; }
+.otp-resend-row { display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 11.5px; color: var(--t2); flex-wrap: wrap; margin-top: 2px; }
+.resend-btn { background: none; border: none; color: var(--blue); font-family: var(--ff); font-size: 11.5px; font-weight: 600; cursor: pointer; transition: opacity .2s; }
+.resend-btn:disabled { opacity: .4; cursor: default; }
+#resendCd { font-family: var(--fm); font-size: 11px; }
+
+/* ═══════════════════════════════════════════════════════
+   APP SCREEN
+═══════════════════════════════════════════════════════ */
+#screenApp { min-height: 100dvh; align-items: center; }
+.app-frame { width: 100%; max-width: 440px; padding: 0 16px 64px; }
+.view { display: none; animation: screenIn .4s var(--ease-out) both; }
+.view.active { display: block; }
+
+/* ─ Dashboard header ─ */
+.app-header { padding: 76px 0 26px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.app-title { font-size: 26px; font-weight: 800; letter-spacing: -1.2px; line-height: 1; }
+.app-subtitle { font-size: 11px; font-weight: 400; color: var(--t2); margin-top: 5px; }
+.header-badge { background: var(--blue-dim); border: 1px solid rgba(59,126,248,.28); color: #7aaeff; font-size: 9px; font-weight: 700; padding: 5px 11px; border-radius: 100px; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; margin-top: 4px; }
+
+/* Balance Grid */
+.balance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+.bal-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 18px 15px 15px; position: relative; overflow: hidden; transition: transform .28s var(--ease), border-color .28s; cursor: default; }
+.bal-card:hover { transform: translateY(-3px); border-color: var(--border-md); }
+.bal-card::before { content: ''; position: absolute; top: -24px; right: -24px; width: 90px; height: 90px; border-radius: 50%; filter: blur(20px); opacity: .18; pointer-events: none; }
+.bal-card.muvo::before{background:var(--blue);} .bal-card.voshr::before{background:var(--amber);}
+.bal-label { font-size: 9.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--t2); margin-bottom: 10px; }
+.bal-value { font-size: 28px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+.bal-card.muvo .bal-value{color:#7aaeff;} .bal-card.voshr .bal-value{color:var(--amber);}
+.bal-sub { font-size: 10.5px; color: var(--t3); margin-top: 6px; }
+.bal-icon { position: absolute; bottom: 13px; right: 13px; font-size: 18px; opacity: .28; }
+
+/* Section label */
+.sec-label { display: flex; align-items: center; gap: 10px; font-size: 9.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--t3); margin-bottom: 14px; }
+.sec-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* Ticket Card */
+.ticket-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,.3); }
+.ticket-top { background: linear-gradient(155deg, #0d1828 0%, #0e1f38 60%, #11234c 100%); padding: 22px 22px 18px; position: relative; overflow: hidden; }
+.ticket-top::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: repeating-linear-gradient(to right, transparent 0px, transparent 6px, rgba(255,255,255,.06) 6px, rgba(255,255,255,.06) 12px); }
+.t-arc { position: absolute; border-radius: 50%; pointer-events: none; }
+.t-arc-1{width:130px;height:130px;top:-40px;right:-40px;border:1px solid rgba(255,255,255,.05);}
+.t-arc-2{width:80px;height:80px;top:-15px;right:-15px;border:1px solid rgba(59,126,248,.1);}
+.ticket-head { display: flex; align-items: flex-start; justify-content: space-between; }
+.t-operator { font-size: 9.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--t2); margin-bottom: 5px; }
+.t-route { font-size: 20px; font-weight: 700; letter-spacing: -.8px; }
+.t-status { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.status-lbl { font-size: 9px; font-weight: 700; letter-spacing: .8px; color: var(--green); }
+.ticket-rows { padding: 4px 0; }
+.ticket-row { border-bottom: 1px solid var(--border); }
+.ticket-row:last-of-type{border-bottom:none;}
+.acc-trigger { width: 100%; background: none; border: none; color: inherit; font-family: var(--ff); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background .22s var(--ease); text-align: left; gap: 8px; }
+.acc-trigger:hover{background:rgba(255,255,255,.02);}
+.acc-trigger.is-open{background:rgba(59,126,248,.05);}
+.row-left{display:flex;align-items:center;gap:12px;min-width:0;}
+.row-icon{width:33px;height:33px;border-radius:var(--r-sm);display:grid;place-items:center;font-size:14px;flex-shrink:0;}
+.i-blue{background:var(--blue-dim);} .i-green{background:var(--green-dim);} .i-amber{background:var(--amber-dim);}
+.row-label{font-size:9.5px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;color:var(--t2);}
+.row-val{font-family:var(--fm);font-size:13.5px;font-weight:500;color:var(--t1);margin-top:2px;letter-spacing:.5px;}
+.chevron{font-size:11px;color:var(--t3);transition:transform .32s var(--ease);flex-shrink:0;}
+.acc-trigger.is-open .chevron{transform:rotate(180deg);}
+.acc-drawer{max-height:0;overflow:hidden;transition:max-height .40s var(--ease);background:rgba(59,126,248,.025);border-top:1px solid transparent;}
+.acc-drawer.is-open{border-top-color:var(--border);}
+.drawer-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px 12px;padding:15px 20px 18px;}
+.di-lbl{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t4);margin-bottom:3px;}
+.di-val{font-family:var(--fm);font-size:11.5px;color:var(--t2);}
+.di-val.hi{color:var(--blue);} .di-val.ok{color:var(--green);}
+.ticket-txn{font-family:var(--fm);font-size:9px;color:var(--t4);text-align:center;padding:9px 16px;letter-spacing:.8px;border-top:1px solid var(--border);}
+.ticket-footer{background:#090f1d;border-top:1px solid rgba(255,255,255,.04);padding:14px 20px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.barcode{display:flex;align-items:flex-end;gap:2px;height:25px;flex-shrink:0;}
+.bb{border-radius:2px;background:var(--t3);flex-shrink:0;}
+.ticket-stamp{font-size:8.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--t4);text-align:right;}
+
+/* ─ View B ─ */
+.back-btn { display: inline-flex; align-items: center; gap: 8px; background: none; border: none; color: var(--t2); font-family: var(--ff); font-size: 13px; font-weight: 500; cursor: pointer; padding: 76px 0 22px; transition: color .22s; }
+.back-btn:hover{color:var(--blue);}
+.back-arrow{transition:transform .22s var(--ease);}
+.back-btn:hover .back-arrow{transform:translateX(-3px);}
+.owner-badge{display:inline-flex;align-items:center;gap:6px;background:var(--green-dim);border:1px solid rgba(16,201,138,.28);color:var(--green);font-size:10px;font-weight:700;padding:5px 12px;border-radius:100px;letter-spacing:.6px;margin-bottom:18px;}
+.owner-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite;}
+.v-card{width:100%;aspect-ratio:1.586;border-radius:20px;background:linear-gradient(145deg,#061538 0%,#0d2865 30%,#1a4abf 65%,#2b6ef5 100%);padding:22px 22px 20px;position:relative;overflow:hidden;cursor:default;box-shadow:0 0 0 1px rgba(255,255,255,.10),0 8px 24px rgba(0,0,0,.5),0 24px 60px rgba(37,99,235,.25);margin-bottom:22px;transition:transform .38s var(--ease),box-shadow .38s;display:flex;flex-direction:column;justify-content:space-between;}
+.v-card:hover{transform:translateY(-5px) perspective(800px) rotateX(2deg);box-shadow:0 0 0 1px rgba(255,255,255,.15),0 16px 32px rgba(0,0,0,.5),0 32px 72px rgba(37,99,235,.32);}
+.c-shimmer{position:absolute;inset:0;background:linear-gradient(108deg,transparent 38%,rgba(255,255,255,.065) 50%,transparent 62%);background-size:250% 100%;animation:shimmer 5s ease-in-out infinite;pointer-events:none;}
+@keyframes shimmer{0%{background-position:-250% 0}100%{background-position:250% 0}}
+.c-arc{position:absolute;border-radius:50%;pointer-events:none;}
+.c-arc-1{width:200px;height:200px;top:-60px;right:-60px;border:1px solid rgba(255,255,255,.06);}
+.c-arc-2{width:130px;height:130px;top:-30px;right:-30px;border:1px solid rgba(255,255,255,.04);}
+.c-arc-3{width:80px;height:80px;bottom:-20px;left:28px;border:1px solid rgba(255,255,255,.04);}
+.c-top{display:flex;align-items:flex-start;justify-content:space-between;position:relative;z-index:1;}
+.c-brand{font-size:10px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.88);}
+.c-circles{display:flex;align-items:center;}
+.c-circle{width:22px;height:22px;border-radius:50%;opacity:.75;}
+.c-circle:first-child{background:var(--amber);z-index:1;} .c-circle:last-child{background:var(--red);margin-left:-9px;}
+.c-mid{display:flex;align-items:center;gap:13px;position:relative;z-index:1;}
+.c-chip{width:40px;height:30px;border-radius:5px;background:linear-gradient(140deg,#c8a054 0%,#e8d090 35%,#b08020 65%,#d4a840 100%);position:relative;box-shadow:0 2px 8px rgba(0,0,0,.35);flex-shrink:0;}
+.c-chip-h{position:absolute;left:0;right:0;height:1px;background:rgba(0,0,0,.2);}
+.c-chip-h:nth-child(1){top:10px;} .c-chip-h:nth-child(2){top:19px;}
+.c-chip-v{position:absolute;top:0;bottom:0;width:1px;background:rgba(0,0,0,.18);}
+.c-chip-v:nth-child(3){left:13px;} .c-chip-v:nth-child(4){left:26px;}
+.c-chip-center{position:absolute;inset:8px 12px;background:linear-gradient(135deg,#c89830,#f0d080 50%,#c09020);border-radius:3px;}
+.c-number{font-family:var(--fm);font-size:clamp(14px,4vw,18px);font-weight:400;letter-spacing:3px;color:rgba(255,255,255,.94);transition:opacity .3s,transform .3s;z-index:1;}
+.c-bot{display:flex;align-items:flex-end;justify-content:space-between;position:relative;z-index:1;}
+.c-field-lbl{font-size:7.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:3px;}
+.c-field-val{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.92);}
+.c-expiry .c-field-val{font-family:var(--fm);font-size:12px;letter-spacing:1.5px;}
+.wizard{background:var(--amber-dim);border:1px solid rgba(245,168,50,.22);border-radius:var(--r-md);padding:20px;margin-bottom:16px;}
+.wiz-head{display:flex;align-items:center;gap:12px;margin-bottom:13px;}
+.wiz-icon{width:34px;height:34px;background:rgba(245,168,50,.18);border-radius:var(--r-sm);display:grid;place-items:center;font-size:16px;flex-shrink:0;}
+.wiz-title{font-size:13px;font-weight:700;color:var(--amber);letter-spacing:-.2px;}
+.wiz-subtitle{font-size:10px;color:var(--t2);margin-top:2px;}
+.wiz-body{font-size:11.5px;line-height:1.75;color:var(--t2);padding-bottom:15px;border-bottom:1px solid rgba(245,168,50,.12);margin-bottom:13px;}
+.wiz-body strong{color:#f0b84a;font-weight:600;}
+.wiz-steps{display:flex;flex-direction:column;gap:9px;margin-bottom:17px;}
+.wiz-step{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--t2);}
+.step-n{width:20px;height:20px;border-radius:50%;background:var(--amber-dim);border:1px solid rgba(245,168,50,.28);color:var(--amber);font-size:9.5px;font-weight:700;display:grid;place-items:center;flex-shrink:0;}
+.input-group{display:flex;flex-direction:column;gap:9px;}
+.input-label{font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t2);}
+.card-input{width:100%;background:var(--surface-2);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:13px 16px;color:var(--t1);font-family:var(--fm);font-size:16px;letter-spacing:2.5px;outline:none;transition:border-color .22s,box-shadow .22s;-webkit-appearance:none;}
+.card-input:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,168,50,.13);}
+.card-input::placeholder{color:var(--t4);letter-spacing:1.5px;font-size:14px;}
+.card-input.err{border-color:var(--red)!important;box-shadow:0 0 0 3px var(--red-dim)!important;animation:shake .36s var(--ease);}
+.transfer-btn{width:100%;background:linear-gradient(135deg,#c8800e,#f5a832);border:none;border-radius:var(--r-sm);padding:14px;color:#060810;font-family:var(--ff);font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.3px;transition:transform .22s,box-shadow .22s;box-shadow:0 4px 22px var(--amber-glow);min-height:50px;}
+.transfer-btn:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--amber-glow);}
+.transfer-btn:disabled{opacity:.65;cursor:not-allowed;}
+.success-banner{display:flex;align-items:flex-start;gap:12px;background:var(--green-dim);border:1px solid rgba(16,201,138,.28);border-radius:var(--r-sm);padding:14px 16px;opacity:0;transform:translateY(-10px);pointer-events:none;transition:opacity .45s var(--ease-out),transform .45s var(--ease-out);}
+.success-banner.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+.s-icon{font-size:17px;line-height:1;margin-top:1px;}
+.s-title{font-size:12.5px;font-weight:700;color:var(--green);margin-bottom:3px;}
+.s-detail{font-size:11px;color:var(--t2);line-height:1.55;font-family:var(--fm);letter-spacing:.3px;}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════ */
+@media(max-width:480px){
+  .app-frame{padding:0 12px 60px;}
+  .otp-box{width:40px;height:52px;font-size:20px;}
+  .otp-boxes{gap:7px;}
+  .login-card,.otp-card{padding:22px 18px 20px;}
+  .c-number{font-size:13px;letter-spacing:1.5px;}
+  .bal-value{font-size:24px;}
+}
+@media(max-width:360px){
+  .otp-box{width:35px;height:46px;font-size:18px;}
+  .otp-boxes{gap:5px;}
+  .balance-grid{gap:8px;}
+  .bal-card{padding:14px 11px;}
+  .c-number{font-size:12px;letter-spacing:1px;}
+}
+@media(min-width:768px){
+  .app-frame{padding:0 22px 80px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     FLOATING PIE
+══════════════════════════════════════════════ -->
+<button class="float-pie" id="floatPie" aria-label="Open navigation menu"></button>
+
+<!-- ══════════════════════════════════════════════
+     SIDEBAR OVERLAY + PANEL
+══════════════════════════════════════════════ -->
+<div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+
+<aside class="sb-panel" id="sbPanel" aria-label="App sidebar">
+  <div class="sb-topbar">
+    <div class="sb-brand">
+      <div class="sb-brand-logo">Mz</div>
+      <span class="sb-brand-name">Mobizarl</span>
+    </div>
+    <button class="sb-x" onclick="closeSidebar()" aria-label="Close sidebar">✕</button>
+  </div>
+
+  <div class="sb-profile">
+    <div class="sb-avatar-row">
+      <div class="sb-avatar" id="sbAvatar">SN</div>
+      <div>
+        <div class="sb-user-name" id="sbName">Sipho Ndlovu</div>
+        <div class="sb-user-card" id="sbCard">•••• •••• 0712</div>
+      </div>
+    </div>
+    <div class="sb-verified"><div class="sb-verified-dot"></div>Verified Commuter</div>
+    <div class="sb-stats">
+      <div class="sb-stat">
+        <span class="sb-stat-val blue" id="sbTrips">14</span>
+        <span class="sb-stat-lbl">MUVO Trips</span>
+      </div>
+      <div class="sb-stat">
+        <span class="sb-stat-val amber" id="sbWallet">R185.50</span>
+        <span class="sb-stat-lbl">Voshr Wallet</span>
+      </div>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <button class="sb-nav-item active" id="navDash" onclick="sbNav('A')"><span class="sb-nav-icon">🏠</span>Dashboard</button>
+    <button class="sb-nav-item" id="navCard" onclick="sbNav('B')"><span class="sb-nav-icon">💳</span>My Card</button>
+    <button class="sb-nav-item" onclick="closeSidebar()"><span class="sb-nav-icon">🗺️</span>Trip History</button>
+    <div class="sb-divider"></div>
+    <button class="sb-nav-item" onclick="closeSidebar()"><span class="sb-nav-icon">⚙️</span>Settings</button>
+    <button class="sb-nav-item" onclick="closeSidebar()"><span class="sb-nav-icon">❓</span>Help &amp; Support</button>
+  </nav>
+
+  <div class="sb-footer">
+    <button class="sb-signout" onclick="handleSignOut()"><span>🚪</span>Sign Out</button>
+  </div>
+</aside>
+
+<!-- ══════════════════════════════════════════════
+     CANVAS
+══════════════════════════════════════════════ -->
+<main class="canvas" id="canvas">
+
+  <!-- ▓▓▓ LOGIN ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ -->
+  <section class="screen visible" id="screenLogin" aria-label="Sign in">
+  <div class="login-wrap">
+
+    <div class="login-logo-row">
+      <div class="login-logo-mark">Mz<div class="logo-ring"></div></div>
+      <h1 class="login-app-name">Mobizarl</h1>
+      <p class="login-tagline">Your Free Commuter Assistant</p>
+    </div>
+
+    <div class="login-card">
+      <h2 class="lc-title">Sign In</h2>
+      <p class="lc-sub">Enter your Muvo card number, registered cellphone and password to access your commuter profile.</p>
+
+      <div class="field">
+        <label class="f-label" for="fCard"><span class="f-label-icon">💳</span>Muvo Card Number</label>
+        <div class="f-wrap">
+          <input class="f-input mono" id="fCard" type="tel" inputmode="numeric" maxlength="12" placeholder="123456789012" autocomplete="off" />
+        </div>
+        <div class="f-err" id="errCard"><span>⚠</span>Enter your 12-digit Muvo card number</div>
+      </div>
+
+      <div class="field">
+        <label class="f-label" for="fCell"><span class="f-label-icon">📱</span>Cellphone Number</label>
+        <div class="f-wrap">
+          <input class="f-input" id="fCell" type="tel" inputmode="tel" placeholder="+27 82 000 0000" autocomplete="tel" />
+        </div>
+        <div class="f-err" id="errCell"><span>⚠</span>Enter a valid SA mobile number</div>
+      </div>
+
+      <div class="field">
+        <label class="f-label" for="fPass"><span class="f-label-icon">🔒</span>Password</label>
+        <div class="f-wrap">
+          <input class="f-input has-trail" id="fPass" type="password" placeholder="Min. 6 characters" autocomplete="current-password" />
+          <button class="f-trail" id="togglePw" type="button" onclick="togglePw()">Show</button>
+        </div>
+        <div class="f-err" id="errPass"><span>⚠</span>Password must be at least 6 characters</div>
+      </div>
+
+      <div class="form-divider"></div>
+
+      <button class="login-btn" id="loginBtn" onclick="handleLogin()">
+        Send OTP &amp; Continue →
+      </button>
+
+      <!-- Server error / info message -->
+      <div class="server-msg" id="loginMsg" role="alert"></div>
+    </div>
+
+    <div class="login-footer">
+      <p class="login-footer-text">Don't have an account? <button class="login-footer-link">Register at a Muvo kiosk</button></p>
+    </div>
+    <div class="login-badges">
+      <div class="login-badge"><div class="badge-dot blue"></div>Muvo Transit</div>
+      <div class="login-badge"><div class="badge-dot amber"></div>Voshr Wallet</div>
+      <div class="login-badge"><div class="badge-dot green"></div>STS Verified</div>
+    </div>
+  </div>
+  </section>
+
+
+  <!-- ▓▓▓ OTP ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ -->
+  <section class="screen" id="screenOtp" aria-label="OTP Verification">
+  <div class="otp-wrap">
+
+    <button class="otp-back" onclick="goBack()" aria-label="Back to login">
+      <span class="otp-back-arrow">←</span> Back to Login
+    </button>
+
+    <div class="otp-card">
+      <div class="otp-icon" aria-hidden="true">💬</div>
+      <h2 class="otp-title">Check your phone</h2>
+      <p class="otp-desc">We sent a 6-digit verification code via SMS to</p>
+      <div class="otp-phone" id="otpPhone">+27 82 *** 0000</div>
+
+      <div class="otp-boxes" id="otpBoxes" role="group" aria-label="6-digit OTP code">
+        <input class="otp-box" type="tel" inputmode="numeric" maxlength="1" aria-label="Digit 1" />
+        <input class="otp-box" type="tel" inputmode="numeric" maxlength="1" aria-label="Digit 2" />
+        <input class="otp-box" type="tel" inputmode="numeric" maxlength="1" aria-label="Digit 3" />
+        <input class="otp-box" type="tel" inputmode="numeric" maxlength="1" aria-label="Digit 4" />
+        <input class="otp-box" type="tel" inputmode="numeric" maxlength="1" aria-label="Digit 5" />
+        <input class="otp-box" type="tel" inputmode="numeric" maxlength="1" aria-label="Digit 6" />
+      </div>
+
+      <!-- Server message (errors / info shown here) -->
+      <div class="server-msg" id="otpMsg" role="alert"></div>
+
+      <button class="otp-verify-btn" id="otpVerifyBtn" onclick="handleOtpVerify()" style="margin-top:16px;">
+        Verify &amp; Sign In →
+      </button>
+
+      <div class="otp-resend-row">
+        <span>Didn't receive it?</span>
+        <button class="resend-btn" id="resendBtn" onclick="resendOtp()" disabled>Resend OTP</button>
+        <span id="resendCd">in 30s</span>
+      </div>
+    </div>
+
+  </div>
+  </section>
+
+
+  <!-- ▓▓▓ APP ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ -->
+  <section class="screen" id="screenApp" aria-label="Mobizarl App">
+  <div class="app-frame">
+
+    <!-- VIEW A — DASHBOARD -->
+    <div class="view active" id="viewA">
+      <header class="app-header">
+        <div>
+          <h1 class="app-title">Mobizarl</h1>
+          <p class="app-subtitle">Your Free Commuter Assistant</p>
+        </div>
+        <span class="header-badge">MUVO · STS</span>
+      </header>
+
+      <div class="balance-grid">
+        <div class="bal-card muvo">
+          <div class="bal-label">MUVO Trips</div>
+          <div class="bal-value">14</div>
+          <div class="bal-sub">Remaining</div>
+          <div class="bal-icon" aria-hidden="true">🚌</div>
+        </div>
+        <div class="bal-card voshr">
+          <div class="bal-label">Voshr Wallet</div>
+          <div class="bal-value">R185<span style="font-size:.55em;font-weight:600;letter-spacing:0">.50</span></div>
+          <div class="bal-sub">Available</div>
+          <div class="bal-icon" aria-hidden="true">💳</div>
+        </div>
+      </div>
+
+      <div class="sec-label">Recent Digital Receipt</div>
+
+      <article class="ticket-card">
+        <div class="ticket-top">
+          <div class="t-arc t-arc-1" aria-hidden="true"></div>
+          <div class="t-arc t-arc-2" aria-hidden="true"></div>
+          <div class="ticket-head">
+            <div>
+              <div class="t-operator">Durban Muvo Transit</div>
+              <div class="t-route">Pinetown → CBD</div>
+            </div>
+            <div class="t-status">
+              <div class="pulse-dot" aria-hidden="true"></div>
+              <div class="status-lbl">ACTIVE</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ticket-rows" role="list">
+          <div class="ticket-row" role="listitem">
+            <button class="acc-trigger" onclick="toggleAcc(this)" aria-expanded="false">
+              <div class="row-left"><div class="row-icon i-blue" aria-hidden="true">🎫</div><div><div class="row-label">Ticket Number</div><div class="row-val">#TK-99823</div></div></div>
+              <span class="chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="acc-drawer">
+              <div class="drawer-grid">
+                <div><div class="di-lbl">Issue Date</div><div class="di-val">2025-06-07</div></div>
+                <div><div class="di-lbl">Issue Time</div><div class="di-val">07:34 AM</div></div>
+                <div><div class="di-lbl">Ticket Type</div><div class="di-val hi">MUVO Digital</div></div>
+                <div><div class="di-lbl">Validity</div><div class="di-val">Single Trip</div></div>
+                <div><div class="di-lbl">Zone</div><div class="di-val">Zone 3 – KZN</div></div>
+                <div><div class="di-lbl">Status</div><div class="di-val ok">Validated ✓</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ticket-row" role="listitem">
+            <button class="acc-trigger" onclick="toggleAcc(this)" aria-expanded="false">
+              <div class="row-left"><div class="row-icon i-green" aria-hidden="true">🗺️</div><div><div class="row-label">Trip Code</div><div class="row-val">#TRIP-404</div></div></div>
+              <span class="chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="acc-drawer">
+              <div class="drawer-grid">
+                <div><div class="di-lbl">Origin Stop</div><div class="di-val">Pinetown Depot</div></div>
+                <div><div class="di-lbl">Destination</div><div class="di-val">Warwick Jcn</div></div>
+                <div><div class="di-lbl">Departs</div><div class="di-val">07:45 AM</div></div>
+                <div><div class="di-lbl">Arrives Est.</div><div class="di-val">08:22 AM</div></div>
+                <div><div class="di-lbl">Route Ref</div><div class="di-val hi">PT-WK-404</div></div>
+                <div><div class="di-lbl">Fare Deducted</div><div class="di-val">1 MUVO Trip</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ticket-row" role="listitem">
+            <button class="acc-trigger" onclick="toggleAcc(this)" aria-expanded="false">
+              <div class="row-left"><div class="row-icon i-amber" aria-hidden="true">👤</div><div><div class="row-label">Bus Driver ID</div><div class="row-val">#EMP-7712</div></div></div>
+              <span class="chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="acc-drawer">
+              <div class="drawer-grid">
+                <div><div class="di-lbl">Employee No.</div><div class="di-val hi">#EMP-7712</div></div>
+                <div><div class="di-lbl">Vehicle Reg</div><div class="di-val">KZN 441 GP</div></div>
+                <div><div class="di-lbl">Bus Capacity</div><div class="di-val">72 Seats</div></div>
+                <div><div class="di-lbl">On-time Score</div><div class="di-val ok">94.2%</div></div>
+                <div><div class="di-lbl">Operator</div><div class="di-val">eThekwini Muvo</div></div>
+                <div><div class="di-lbl">Shift</div><div class="di-val">Morning Run</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ticket-txn">TXN · 2025-06-07T07:34:11Z · SHA256: a3f9b2c4d1</div>
+        <div class="ticket-footer">
+          <div class="barcode" aria-hidden="true">
+            <div class="bb" style="width:2px;height:100%"></div><div class="bb" style="width:1px;height:66%"></div>
+            <div class="bb" style="width:3px;height:90%"></div><div class="bb" style="width:1px;height:52%"></div>
+            <div class="bb" style="width:2px;height:100%"></div><div class="bb" style="width:1px;height:74%"></div>
+            <div class="bb" style="width:2px;height:84%"></div><div class="bb" style="width:3px;height:100%"></div>
+            <div class="bb" style="width:1px;height:58%"></div><div class="bb" style="width:2px;height:92%"></div>
+            <div class="bb" style="width:1px;height:76%"></div><div class="bb" style="width:3px;height:100%"></div>
+            <div class="bb" style="width:1px;height:50%"></div><div class="bb" style="width:2px;height:80%"></div>
+            <div class="bb" style="width:1px;height:64%"></div><div class="bb" style="width:3px;height:100%"></div>
+            <div class="bb" style="width:1px;height:78%"></div><div class="bb" style="width:2px;height:56%"></div>
+            <div class="bb" style="width:1px;height:96%"></div><div class="bb" style="width:3px;height:100%"></div>
+            <div class="bb" style="width:1px;height:68%"></div><div class="bb" style="width:2px;height:86%"></div>
+            <div class="bb" style="width:3px;height:100%"></div>
+          </div>
+          <div class="ticket-stamp">MOBIZARL · VERIFIED</div>
+        </div>
+      </article>
+    </div><!-- /viewA -->
+
+
+    <!-- VIEW B — VIRTUAL CARD -->
+    <div class="view" id="viewB">
+      <button class="back-btn" onclick="showAppView('A')"><span class="back-arrow">←</span> Back to Ticket</button>
+      <div class="owner-badge"><div class="owner-dot" aria-hidden="true"></div>Verified Owner Profile</div>
+
+      <div class="v-card" role="img" aria-label="Mobizarl commuter pass">
+        <div class="c-shimmer" aria-hidden="true"></div>
+        <div class="c-arc c-arc-1" aria-hidden="true"></div><div class="c-arc c-arc-2" aria-hidden="true"></div><div class="c-arc c-arc-3" aria-hidden="true"></div>
+        <div class="c-top"><div class="c-brand">Mobizarl Pass</div><div class="c-circles" aria-hidden="true"><div class="c-circle"></div><div class="c-circle"></div></div></div>
+        <div class="c-mid">
+          <div class="c-chip" aria-hidden="true"><div class="c-chip-h"></div><div class="c-chip-h"></div><div class="c-chip-v"></div><div class="c-chip-v"></div><div class="c-chip-center"></div></div>
+          <div class="c-number" id="cardNum">9982 &bull; 3411 &bull; 0712</div>
+        </div>
+        <div class="c-bot">
+          <div><div class="c-field-lbl">Card Holder</div><div class="c-field-val" id="cardHolder">Sipho Ndlovu</div></div>
+          <div class="c-expiry"><div class="c-field-lbl">Valid Thru</div><div class="c-field-val">12 / 28</div></div>
+        </div>
+      </div>
+
+      <div class="wizard">
+        <div class="wiz-head"><div class="wiz-icon" aria-hidden="true">⚡</div><div><div class="wiz-title">Trip Reallocation Wizard</div><div class="wiz-subtitle">Protect your trips on a lost or replaced card</div></div></div>
+        <div class="wiz-body">If your Muvo card is <strong>lost, damaged, or replaced</strong>, your trips don't disappear. Enter your new 12-digit card number below. Your <strong>old card stays active on the STS registry</strong> as a legacy fallback — frozen for boarding but preserved as a verified record.</div>
+        <div class="wiz-steps">
+          <div class="wiz-step"><div class="step-n">1</div><span>Report your old card at any Muvo kiosk or STS portal</span></div>
+          <div class="wiz-step"><div class="step-n">2</div><span>Enter your new 12-digit card number in the field below</span></div>
+          <div class="wiz-step"><div class="step-n">3</div><span>Confirm — trips reallocate to the new card in 60 seconds</span></div>
+        </div>
+        <div class="input-group">
+          <label class="input-label" for="txInput">Enter New 12-Digit Card No.</label>
+          <input class="card-input" id="txInput" type="tel" inputmode="numeric" maxlength="12" placeholder="000000000000" autocomplete="off" />
+          <button class="transfer-btn" id="txBtn" onclick="handleTransfer()">Transfer Trips →</button>
+        </div>
+      </div>
+
+      <div class="success-banner" id="successBanner" role="alert" aria-live="polite">
+        <div class="s-icon" aria-hidden="true">✅</div>
+        <div><div class="s-title">Transfer Successful</div><div class="s-detail" id="sDetail">14 MUVO Trips reallocated.</div></div>
+      </div>
+    </div><!-- /viewB -->
+
+  </div>
+  </section>
+
+</main>
+
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ────────────────────────────────────────────
+   STATE
+──────────────────────────────────────────── */
+const S = {
+  loggedIn:    false,
+  sidebarOpen: false,
+  appView:     'A',
+  token:       null,
+  cellNumber:  '',   // raw entered number — kept for resend / verify
+  lastCard:    '',
+  resendTimer: null,
+  user: { name: 'Guest', initials: '??', trips: 0, wallet: 'R0.00' },
+};
+
+const ORIG_CARD = '9982 \u2022 3411 \u2022 0712';
+
+/* ────────────────────────────────────────────
+   SCREEN ROUTER
+──────────────────────────────────────────── */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
+  document.getElementById(id).classList.add('visible');
+  document.getElementById('canvas').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ────────────────────────────────────────────
+   UI HELPERS
+──────────────────────────────────────────── */
+function setLoading(btn, on) {
+  btn.disabled = on;
+  if (on) {
+    btn._orig    = btn.innerHTML;
+    const dark   = btn.classList.contains('transfer-btn') ? ' dark' : '';
+    btn.innerHTML = `<span class="btn-spinner${dark}"></span>`;
+  } else if (btn._orig) {
+    btn.innerHTML = btn._orig;
+  }
+}
+
+function showMsg(id, text, type = 'error') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text;
+  el.className   = `server-msg ${type}`;
+}
+
+function clearMsg(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = '';
+  el.className   = 'server-msg';
+}
+
+function setFieldErr(inputId, errId, show) {
+  const input = document.getElementById(inputId);
+  const err   = document.getElementById(errId);
+  if (show) {
+    input.classList.add('err');
+    err.classList.add('show');
+    setTimeout(() => input.classList.remove('err'), 600);
+  } else {
+    input.classList.remove('err');
+    err.classList.remove('show');
+  }
+}
+
+function togglePw() {
+  const pw  = document.getElementById('fPass');
+  const btn = document.getElementById('togglePw');
+  const show = pw.type === 'password';
+  pw.type      = show ? 'text' : 'password';
+  btn.textContent = show ? 'Hide' : 'Show';
+}
+
+/* ────────────────────────────────────────────
+   LOGIN
+──────────────────────────────────────────── */
+async function handleLogin() {
+  const card = document.getElementById('fCard').value.replace(/\D/g, '');
+  const cell = document.getElementById('fCell').value.trim();
+  const pass = document.getElementById('fPass').value;
+
+  let ok = true;
+  if (card.length !== 12)                               { setFieldErr('fCard','errCard',true);  ok = false; } else setFieldErr('fCard','errCard',false);
+  if (cell.replace(/[\s\-()]/g,'').length < 10)         { setFieldErr('fCell','errCell',true);  ok = false; } else setFieldErr('fCell','errCell',false);
+  if (pass.length < 6)                                  { setFieldErr('fPass','errPass',true);  ok = false; } else setFieldErr('fPass','errPass',false);
+  if (!ok) return;
+
+  const btn = document.getElementById('loginBtn');
+  setLoading(btn, true);
+  clearMsg('loginMsg');
+
+  try {
+    const res  = await fetch('/api/request-otp', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ cardNumber: card, cellNumber: cell, password: pass }),
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      if      (data.field === 'card') setFieldErr('fCard','errCard',true);
+      else if (data.field === 'cell') setFieldErr('fCell','errCell',true);
+      else if (data.field === 'pass') setFieldErr('fPass','errPass',true);
+      else showMsg('loginMsg', data.message || 'Login failed. Please try again.');
+      return;
+    }
+
+    // Store for OTP screen
+    S.cellNumber = cell;
+    S.lastCard   = card;
+    document.getElementById('otpPhone').textContent = data.maskedPhone;
+
+    clearOtpBoxes();
+    showScreen('screenOtp');
+    startResendCountdown(30);
+    setTimeout(() => document.querySelector('.otp-box')?.focus(), 500);
+
+  } catch (err) {
+    showMsg('loginMsg', 'Connection error — is the server running?');
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+function goBack() {
+  clearInterval(S.resendTimer);
+  clearMsg('otpMsg');
+  showScreen('screenLogin');
+}
+
+/* ────────────────────────────────────────────
+   OTP BOXES SETUP
+──────────────────────────────────────────── */
+function setupOtpBoxes() {
+  const boxes = [...document.querySelectorAll('.otp-box')];
+
+  boxes.forEach((box, i) => {
+    box.addEventListener('input', () => {
+      const v = box.value.replace(/\D/, '');
+      box.value = v;
+      if (v) {
+        box.classList.add('filled');
+        box.classList.add('pop');
+        setTimeout(() => box.classList.remove('pop'), 260);
+        if (i < boxes.length - 1) boxes[i + 1].focus();
+      } else {
+        box.classList.remove('filled');
+      }
+      syncAllDone(boxes);
+    });
+
+    box.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !box.value && i > 0) {
+        boxes[i - 1].value = '';
+        boxes[i - 1].classList.remove('filled');
+        boxes[i - 1].focus();
+        syncAllDone(boxes);
+      }
+      if (e.key === 'Enter') handleOtpVerify();
+    });
+
+    box.addEventListener('paste', e => {
+      e.preventDefault();
+      const txt = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
+      txt.split('').forEach((ch, j) => {
+        if (boxes[i + j]) { boxes[i + j].value = ch; boxes[i + j].classList.add('filled'); }
+      });
+      boxes[Math.min(i + txt.length, boxes.length - 1)].focus();
+      syncAllDone(boxes);
+    });
+  });
+}
+
+function syncAllDone(boxes) {
+  const done = boxes.every(b => b.value.length === 1);
+  boxes.forEach(b => b.classList.toggle('all-done', done));
+}
+
+function clearOtpBoxes() {
+  document.querySelectorAll('.otp-box').forEach(b => {
+    b.value = '';
+    b.classList.remove('filled','pop','all-done','err');
+  });
+}
+
+function getOtp() {
+  return [...document.querySelectorAll('.otp-box')].map(b => b.value).join('');
+}
+
+/* ────────────────────────────────────────────
+   OTP VERIFY
+──────────────────────────────────────────── */
+async function handleOtpVerify() {
+  const otp = getOtp();
+  if (otp.length < 6) {
+    document.querySelectorAll('.otp-box').forEach(b => {
+      b.classList.add('err');
+      setTimeout(() => b.classList.remove('err'), 600);
+    });
+    return;
+  }
+
+  const btn = document.getElementById('otpVerifyBtn');
+  setLoading(btn, true);
+  clearMsg('otpMsg');
+
+  try {
+    const res  = await fetch('/api/verify-otp', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ cellNumber: S.cellNumber, otp }),
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      showMsg('otpMsg', data.message || 'Verification failed. Please try again.');
+      clearOtpBoxes();
+      setTimeout(() => document.querySelector('.otp-box')?.focus(), 100);
+      return;
+    }
+
+    // ✓ Authenticated
+    S.token         = data.token;
+    S.user.name     = data.user.name;
+    S.user.initials = data.user.initials;
+    S.user.trips    = 14;
+    S.user.wallet   = 'R185.50';
+
+    clearInterval(S.resendTimer);
+    enterApp();
+
+  } catch (err) {
+    showMsg('otpMsg', 'Connection error. Please try again.');
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+/* ────────────────────────────────────────────
+   RESEND OTP
+──────────────────────────────────────────── */
+async function resendOtp() {
+  clearOtpBoxes();
+  clearMsg('otpMsg');
+  document.getElementById('resendBtn').disabled = true;
+
+  try {
+    const res  = await fetch('/api/resend-otp', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ cellNumber: S.cellNumber }),
+    });
+    const data = await res.json();
+    if (!data.success) {
+      showMsg('otpMsg', data.message || 'Could not resend. Please go back and try again.');
+      return;
+    }
+    showMsg('otpMsg', 'New OTP sent! Check your phone.', 'info');
+    setTimeout(() => clearMsg('otpMsg'), 4000);
+  } catch {
+    showMsg('otpMsg', 'Connection error. Please try again.');
+  }
+
+  startResendCountdown(30);
+  setTimeout(() => document.querySelector('.otp-box')?.focus(), 100);
+}
+
+function startResendCountdown(secs) {
+  const btn = document.getElementById('resendBtn');
+  const cd  = document.getElementById('resendCd');
+  btn.disabled    = true;
+  cd.style.display = 'inline';
+  let s = secs;
+
+  clearInterval(S.resendTimer);
+  S.resendTimer = setInterval(() => {
+    s--;
+    cd.textContent = `in ${s}s`;
+    if (s <= 0) {
+      clearInterval(S.resendTimer);
+      btn.disabled    = false;
+      cd.textContent  = '';
+    }
+  }, 1000);
+}
+
+/* ────────────────────────────────────────────
+   ENTER APP
+──────────────────────────────────────────── */
+function enterApp() {
+  S.loggedIn = true;
+
+  // Populate sidebar
+  document.getElementById('sbAvatar').textContent = S.user.initials;
+  document.getElementById('sbName').textContent   = S.user.name;
+  document.getElementById('sbCard').textContent   = '\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 ' + S.lastCard.slice(-4);
+  document.getElementById('sbTrips').textContent  = S.user.trips;
+  document.getElementById('sbWallet').textContent = S.user.wallet;
+
+  // Populate card holder name
+  document.getElementById('cardHolder').textContent = S.user.name;
+
+  document.getElementById('floatPie').classList.add('visible');
+  showAppView('A');
+  showScreen('screenApp');
+}
+
+/* ────────────────────────────────────────────
+   APP VIEW SWITCHING
+──────────────────────────────────────────── */
+function showAppView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view' + id).classList.add('active');
+  S.appView = id;
+  document.getElementById('navDash').classList.toggle('active', id === 'A');
+  document.getElementById('navCard').classList.toggle('active', id === 'B');
+  document.getElementById('canvas').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ────────────────────────────────────────────
+   SIDEBAR
+──────────────────────────────────────────── */
+document.getElementById('floatPie').addEventListener('click', openSidebar);
+
+function openSidebar() {
+  S.sidebarOpen = true;
+  document.getElementById('sbPanel').classList.add('open');
+  document.getElementById('sbOverlay').classList.add('open');
+  const pie = document.getElementById('floatPie');
+  pie.style.opacity = '0'; pie.style.pointerEvents = 'none';
+}
+
+function closeSidebar() {
+  S.sidebarOpen = false;
+  document.getElementById('sbPanel').classList.remove('open');
+  document.getElementById('sbOverlay').classList.remove('open');
+  const pie = document.getElementById('floatPie');
+  pie.style.opacity = '1'; pie.style.pointerEvents = 'auto';
+}
+
+function sbNav(viewId) {
+  closeSidebar();
+  setTimeout(() => showAppView(viewId), 200);
+}
+
+/* ────────────────────────────────────────────
+   SIGN OUT
+──────────────────────────────────────────── */
+async function handleSignOut() {
+  closeSidebar();
+  if (S.token) {
+    try {
+      await fetch('/api/logout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: S.token }),
+      });
+    } catch {}
+    S.token = null;
+  }
+  S.loggedIn = false;
+  document.getElementById('floatPie').classList.remove('visible');
+  ['fCard','fCell','fPass'].forEach(id => document.getElementById(id).value = '');
+  ['errCard','errCell','errPass'].forEach(id => document.getElementById(id).classList.remove('show'));
+  clearMsg('loginMsg');
+  clearMsg('otpMsg');
+  document.getElementById('cardNum').innerHTML = ORIG_CARD;
+  document.getElementById('successBanner').classList.remove('show');
+  setTimeout(() => showScreen('screenLogin'), 100);
+}
+
+/* ────────────────────────────────────────────
+   ACCORDION
+──────────────────────────────────────────── */
+function toggleAcc(trigger) {
+  const drawer = trigger.nextElementSibling;
+  const isOpen = trigger.classList.contains('is-open');
+  document.querySelectorAll('.acc-trigger.is-open').forEach(t => {
+    t.classList.remove('is-open'); t.setAttribute('aria-expanded','false');
+    const d = t.nextElementSibling; d.style.maxHeight = '0px'; d.classList.remove('is-open');
+  });
+  if (!isOpen) {
+    trigger.classList.add('is-open'); trigger.setAttribute('aria-expanded','true');
+    drawer.classList.add('is-open'); drawer.style.maxHeight = drawer.scrollHeight + 'px';
+  }
+}
+
+/* ────────────────────────────────────────────
+   TRANSFER
+──────────────────────────────────────────── */
+let bannerTimer = null;
+
+function handleTransfer() {
+  const input  = document.getElementById('txInput');
+  const digits = input.value.replace(/\D/g,'');
+  if (digits.length < 12) {
+    input.classList.add('err');
+    const prev = input.placeholder;
+    input.placeholder = 'Must be exactly 12 digits';
+    setTimeout(() => { input.classList.remove('err'); input.placeholder = prev; }, 2200);
+    return;
+  }
+  const fmt = digits.slice(0,4) + ' \u2022 ' + digits.slice(4,8) + ' \u2022 ' + digits.slice(8,12);
+  const num  = document.getElementById('cardNum');
+  num.style.transition = 'opacity .28s,transform .28s';
+  num.style.opacity = '0'; num.style.transform = 'translateY(8px)';
+  setTimeout(() => { num.innerHTML = fmt; num.style.opacity = '1'; num.style.transform = 'translateY(0)'; }, 320);
+  document.getElementById('sDetail').textContent = `14 MUVO Trips \u2192 card ${fmt}. Old card ${ORIG_CARD} preserved on STS registry.`;
+  document.getElementById('successBanner').classList.add('show');
+  input.value = '';
+  if (bannerTimer) clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => document.getElementById('successBanner').classList.remove('show'), 7000);
+}
+
+/* ────────────────────────────────────────────
+   INPUT FILTERS & ENTER KEYS
+──────────────────────────────────────────── */
+document.getElementById('fCard').addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g,'').slice(0,12);
+});
+document.getElementById('txInput').addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g,'').slice(0,12);
+});
+document.getElementById('txInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleTransfer();
+});
+['fCard','fCell','fPass'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && S.sidebarOpen) closeSidebar();
+});
+
+/* ────────────────────────────────────────────
+   INIT
+──────────────────────────────────────────── */
+(function init() {
+  setupOtpBoxes();
+  showScreen('screenLogin');
+})();
+</script>
+</body>
+</html>
